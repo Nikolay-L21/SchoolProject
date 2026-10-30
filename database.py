@@ -15,16 +15,19 @@ def init():
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE IF NOT EXISTS known_faces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT EXISTS UNIQUE,
-            vector BLOB NOT EXISTS
+            name TEXT NOT NULL UNIQUE,
+            vector BLOB NOT NULL
         )
         ''')
         connection.commit()
 
-def update(db_images_path="faces_db"):
+def update(db_images_path):
     init()
+    if not os.path.exists(db_images_path):
+        print(f"Ошибка: Папка '{db_images_path}' не найдена!")
+        return False
     files = os.listdir(db_images_path)
     with get_connection() as connection:
         cursor = connection.cursor()
