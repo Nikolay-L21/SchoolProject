@@ -2,6 +2,7 @@ import os
 import sqlite3
 
 import cv2
+import numpy as np
 
 from detector import detect_faces
 from recognizer import get_face_vector
@@ -34,7 +35,7 @@ def update(db_images_path="faces_db"):
                 faces = detect_faces(img_path)
                 if faces is not None and len(faces) == 1:
                     vector = get_face_vector(faces, img_path)
-                    vector_blob = KK.tobytes()
+                    vector_blob = vector.tobytes()
                     try:
                         cursor.execute("""
                                                 INSERT OR REPLACE INTO known_faces (name, vector)
@@ -46,3 +47,13 @@ def update(db_images_path="faces_db"):
                     print("INVALID IMAGE")
                 connection.commit()
 
+def load():
+    known_faces = {}
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT name, vector FROM known_faces")
+        rows = cursor.fetchall()
+        for name, vector_blop in rows:
+            vector = np.frombuffer(vector_blop, dtype=np.float32).reshape(1, 128)
+            known_faces[name] = vector
+    return known_faces
