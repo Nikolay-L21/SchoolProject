@@ -1,6 +1,8 @@
 import cv2
-def detect_faces(path):
-    img = cv2.imread(path)
+
+detector = None
+
+def detect_faces(img):
     model_path = "face_detection_yunet_2023mar.onnx"
     height, width, _ = img.shape
     dtct = cv2.FaceDetectorYN.create(
