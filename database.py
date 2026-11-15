@@ -32,7 +32,7 @@ def init_attendance():
                 lesson_number INTEGER NOT NULL,
                 group_name TEXT NOT NULL,
                 lesson_name TEXT NOT NULL,
-                UNIQUE(lesson_date, group_name, lesson_name)
+                UNIQUE(lesson_date, lesson_number, group_name, lesson_name)
             )
         """)
 
