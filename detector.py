@@ -1,4 +1,7 @@
 import cv2
+
+detector = None
+
 def detect_faces(img):
     model_path = "face_detection_yunet_2023mar.onnx"
     height, width, _ = img.shape

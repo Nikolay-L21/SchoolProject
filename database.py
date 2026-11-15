@@ -30,12 +30,12 @@ def update(name, img):
         faces = detect_faces(img)
         if faces is not None and len(faces) == 1:
             vector = get_face_vector(faces, img)
-            vector_blob = vector.tobytes()
+            vector_blop = vector.tobytes()
             try:
                 cursor.execute("""
                                         INSERT OR REPLACE INTO known_faces (name, vector)
                                         VALUES (?, ?)
-                                        """, (name, vector_blob))
+                                        """, (name, vector_blop))
             except sqlite3.Error as e:
                 print (f"Ошибка SQL при записи {name}: {e}")
         else:
