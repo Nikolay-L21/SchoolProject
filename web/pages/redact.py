@@ -1,4 +1,10 @@
+import os
+import sys
+
+import cv2
+import numpy as np
 import streamlit as st
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from dbManagement import faces_dp
 
 st.title("Регистрация ученика")
@@ -23,15 +29,19 @@ if st.button(
     use_container_width=True):
     if not name.strip():
         st.error("Введите ФИО ученика")
-    elif class_name is None:
+    elif not class_name.strip():
         st.error("Выберите класс")
     elif file is None:
         st.error("Загрузите фотографию")
     else:
-        db = faces_dp.load()
-        res = db.update(name, class_name, file)
-        if(res[0] == 0):
-            st.error(res[1])
+        file_bytes = np.frombuffer(file.getvalue(),np.uint8)
+        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if img is None:
+            st.error("Не удалось декодировать изображение")
         else:
-            st.success(res[1])
+            res = faces_dp.update(name, class_name, img)
+            if(res[0] == 0):
+                st.error(res[1])
+            else:
+                st.success(res[1])
 

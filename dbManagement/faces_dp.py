@@ -1,9 +1,9 @@
 import os
 import sqlite3
+import sys
 
-import cv2
 import numpy as np
-
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from detector import detect_faces
 from recognizer import get_face_vector
 
@@ -31,20 +31,21 @@ def update(name, class_name, img):
         cursor = connection.cursor()
         faces = detect_faces(img)
         if faces is not None and len(faces) == 1:
-            vector = get_face_vector(faces, img)
+            vector = get_face_vector(faces[0], img)
             vector_blop = vector.tobytes()
             try:
                 cursor.execute("""
                                         INSERT OR REPLACE INTO known_faces (name, class_name, vector)
-                                        VALUES (?, ?)
+                                        VALUES (?, ?, ?)
                                         """, (name,class_name, vector_blop))
+                connection.commit()
             except sqlite3.Error as e:
                 return [0, (f"Ошибка записи SQL: {e}")]
             else:
                 return [1,"Успех"]
         else:
             return [0, "Некорректное изображение"]
-        connection.commit()
+
 
 def load():
     known_faces = {}
