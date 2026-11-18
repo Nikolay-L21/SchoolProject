@@ -13,6 +13,7 @@ from detector import detect_faces
 from recognizer import get_face_vector, compare_faces
 from dbManagement import faces_dp
 
+
 db = faces_dp.load()
 class OptimizedVideoProcessor(VideoProcessorBase):
     def __init__(self):

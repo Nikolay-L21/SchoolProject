@@ -7,9 +7,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from detector import detect_faces
 from recognizer import get_face_vector
 
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 
+DB_PATH = os.path.join(BASE_DIR, "faces.db")
 def get_connection():
-    return sqlite3.connect("../faces.db")
+    return sqlite3.connect(DB_PATH)
 
 def init():
     with get_connection() as connection:
@@ -52,9 +56,9 @@ def load():
     init()
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT name, vector FROM known_faces")
+        cursor.execute("SELECT name, class_name, vector FROM known_faces")
         rows = cursor.fetchall()
-        for name, vector_blop in rows:
+        for name, class_name, vector_blop in rows:
             vector = np.frombuffer(vector_blop, dtype=np.float32).reshape(1, 128)
-            known_faces[name] = vector
+            known_faces[name] = [class_name, vector]
     return known_faces
