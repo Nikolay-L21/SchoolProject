@@ -3,7 +3,7 @@ import cv2
 detector = None
 
 def detect_faces(img):
-    model_path = "face_detection_yunet_2023mar.onnx"
+    model_path = "models/face_detection_yunet_2023mar.onnx"
     height, width, _ = img.shape
     dtct = cv2.FaceDetectorYN.create(
         model= model_path,

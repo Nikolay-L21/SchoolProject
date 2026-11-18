@@ -1,15 +1,37 @@
 import streamlit as st
-import database
-import numpy as np
-import cv2
+from dbManagement import faces_dp
+
+st.title("Регистрация ученика")
+st.divider()
+
+st.subheader("Данные ученика")
 name = st.text_input("Введите имя")
-file = st.file_uploader("Загрузите изображение человека",
-                        type=["jpeg", "jpg", "png"])
-if (st.button("Загрузить изображение")):
-    if (file is not None):
-        file_bytes = np.frombuffer(file.read(), np.uint8)
-        opencv_image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        database.update(name, opencv_image)
-        st.write("Успех")
+class_name = st.text_input("Выберите класс")
+st.divider()
+
+st.subheader("Фотография ученика")
+file = st.file_uploader(
+    "Загрузите фотографию",
+    type=["jpg", "jpeg", "png"],
+    help="Поддерживаются форматы JPG, JPEG и PNG"
+)
+
+
+if st.button(
+    "Зарегистрировать ученика",
+    type="primary",
+    use_container_width=True):
+    if not name.strip():
+        st.error("Введите ФИО ученика")
+    elif class_name is None:
+        st.error("Выберите класс")
+    elif file is None:
+        st.error("Загрузите фотографию")
     else:
-        st.write("Ошибка загрузки")
+        db = faces_dp.load()
+        res = db.update(name, class_name, file)
+        if(res[0] == 0):
+            st.error(res[1])
+        else:
+            st.success(res[1])
+

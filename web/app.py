@@ -11,8 +11,9 @@ import cv2
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from detector import detect_faces
 from recognizer import get_face_vector, compare_faces
-import database
-db = database.load()
+from dbManagement import faces_dp
+
+db = faces_dp.load()
 class OptimizedVideoProcessor(VideoProcessorBase):
     def __init__(self):
         self.last_detection_time = 0.0
@@ -94,7 +95,7 @@ if st.session_state.attendance_session is None:
     )
 
     if st.button("Начать проверку посещаемости"):
-        session_id = database.create_attendance_session(str(lesson_date),
+        session_id = faces_dp.create_attendance_session(str(lesson_date),
                                                         group_name, lesson_name, lesson_number)
         st.session_state.attendance_session = session_id
         st.session_state.lesson_date = str(lesson_date)
@@ -126,8 +127,8 @@ else:
         if processor is not None:
             seen_names = processor.get_seen_names()
             for name in seen_names:
-                database.mark_present(session_id, name)
-        records = database.get_attendance()
+                faces_dp.mark_present(session_id, name)
+        records = faces_dp.get_attendance()
         present = [
             row[4] for row in records
             if row[0] == str(lesson_date)
@@ -154,7 +155,7 @@ else:
                 st.warning(f"○ {student} - Ещё не обнаружен")
         st.divider()
         if st.button("Завершить проверку", type="primary"):
-            database.finalize_attendance(session_id, students)
+            faces_dp.finalize_attendance(session_id, students)
             st.session_state.attendance_session = None
             st.rerun()
     attendance_panel()
