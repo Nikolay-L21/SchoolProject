@@ -1,5 +1,7 @@
 import os
 import sys
+from enum import unique
+
 import streamlit as st
 
 sys.path.append(
@@ -23,19 +25,20 @@ else:
         "Всего учеников",
         len(db)
     )
-    classes = set()
+    classes = []
     for class_, _ in db.values():
-        classes.add(class_)
+        classes.append(class_)
     col2.metric(
         "Количество классов",
         len(classes)
     )
-    classes.add("Все классы")
+    classes = list(dict.fromkeys(classes))
+    classes = ["Все классы"] + classes
     st.divider()
 
     selected_class = st.selectbox(
         "Фильтр по классу",
-        classes, placeholder= "Все классы"
+        classes
     )
     students = []
     for name, items in db.items():
