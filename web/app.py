@@ -1,75 +1,17 @@
 import os
 import sys
-import threading
-import time
 from datetime import date
 
+from  services import attendance
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
-import av
-import cv2
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from detector import detect_faces
-from recognizer import get_face_vector, compare_faces
-from dbManagement import faces_dp, attendance_db
+from streamlit_webrtc import webrtc_streamer, RTCConfiguration
 
+from web.components.video_processor import OptimizedVideoProcessor
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from dbManagement import attendance_db, faces_dp
 
 db = faces_dp.load()
-class OptimizedVideoProcessor(VideoProcessorBase):
-    def __init__(self, group_name):
-        self.db = {
-            name: vector
-            for name, (student_class, vector) in faces_dp.load().items()
-            if student_class == group_name
-        }
-        self.last_detection_time = 0.0
-        self.detection_interval = 0.15
-        self.last_faces = []
-        self.seen_names = set()
-        self.hit_counts = {}
-        self.last_hit_time = {}
-        self.lock = threading.Lock()
-        self.required_hits = 2
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        opencv_image = frame.to_ndarray(format="bgr24").copy()
-        current_time = time.monotonic()
-        if  current_time - self.last_detection_time > self.detection_interval:
-            self.last_detection_time = current_time
-            faces = detect_faces(opencv_image)
-            self.last_faces = []
-            if faces is not None and len(faces) > 0:
-                for face in faces:
-                    x, y, w, h = map(int, face[:4])
-                    vector = get_face_vector(face, opencv_image)
-                    name = "Unknown"
-                    max_similarity = -1.0
-                    for db_name, db_vector in self.db.items():
-                        similarity = compare_faces(vector, db_vector)
-                        if similarity > 0.36 and similarity > max_similarity:
-                            max_similarity = similarity
-                            name = db_name
-                    self.last_faces.append((x, y, w, h, name))
-                    if name != "Unknown":
-                        with self.lock:
-                            current_time = time.monotonic()
-                            if current_time - self.last_hit_time.get(name, 0) > 3:
-                                self.hit_counts[name] = 0
-                            self.hit_counts[name] = self.hit_counts.get(name, 0) + 1
-                            self.last_hit_time[name] = current_time
-                            if self.hit_counts[name] >= self.required_hits:
-                                self.seen_names.add(name)
-        for (x, y, w, h, name) in self.last_faces:
-            if name != "Unknown": color = (0, 255, 0)
-            else: color = (0, 0, 255)
-            cv2.rectangle(opencv_image, (x, y), (x + w, y + h), color, 2)
-            cv2.putText(opencv_image, name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-        new_frame = av.VideoFrame.from_ndarray(opencv_image, format="bgr24")
-        new_frame.pts = frame.pts
-        new_frame.time_base = frame.time_base
-        return new_frame
-    def get_seen_names(self):
-        with self.lock:
-            return set(self.seen_names)
 
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
@@ -103,7 +45,7 @@ if st.session_state.attendance_session is None:
         options=classes
     )
     if st.button("Начать проверку посещаемости"):
-        session_id = attendance_db.create_attendance_session(
+        session_id = attendance.attendance(
             str(lesson_date),
             group_name,
             lesson_name,
@@ -144,19 +86,9 @@ else:
         processor = ctx.video_processor
         if processor is not None:
             seen_names = processor.get_seen_names()
-            for name in seen_names:
-                attendance_db.mark_present(session_id, name)
-        records = attendance_db.get_attendance()
-        present = [
-            row[4] for row in records
-            if row[0] == str(lesson_date)
-               and row[2] == group_name
-               and row[3] == lesson_name
-               and row[5] == "Присутствует"
-               and row[1] == lesson_number
-        ]
-        absent = set(students) - set(present)
+            attendance.register_detected_students(session_id, seen_names)
         col1, col2 = st.columns(2)
+        present, absent= attendance.get_status(lesson_date, lesson_number,group_name,lesson_name,students)
         col1.metric(
             "Присутствуют",
             len(present)
@@ -173,7 +105,7 @@ else:
                 st.warning(f"○ {student} - Ещё не обнаружен")
         st.divider()
         if st.button("Завершить проверку", type="primary"):
-            attendance_db.finalize_attendance(session_id, students)
+            attendance.finish_attendance(session_id, students)
             st.session_state.attendance_session = None
             st.rerun()
     attendance_panel()
