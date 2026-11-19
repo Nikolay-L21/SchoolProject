@@ -1,9 +1,6 @@
 import os
 import sqlite3
-import sys
-
 import numpy as np
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from detector import detect_faces
 from recognizer import get_face_vector
 

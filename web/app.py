@@ -1,14 +1,10 @@
 import os
 import sys
 from datetime import date
-
-from  services import attendance
+from  web.services import attendance
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, RTCConfiguration
-
 from web.components.video_processor import OptimizedVideoProcessor
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dbManagement import attendance_db, faces_dp
 
 db = faces_dp.load()
@@ -45,7 +41,7 @@ if st.session_state.attendance_session is None:
         options=classes
     )
     if st.button("Начать проверку посещаемости"):
-        session_id = attendance.attendance(
+        session_id = attendance.start_attendance(
             str(lesson_date),
             group_name,
             lesson_name,
@@ -76,7 +72,7 @@ else:
     ]
     ctx = webrtc_streamer(
         key=f"attendance-{session_id}",
-        video_processor_factory=lambda: OptimizedVideoProcessor(group_name),
+        video_processor_factory=lambda: OptimizedVideoProcessor(db, group_name),
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True

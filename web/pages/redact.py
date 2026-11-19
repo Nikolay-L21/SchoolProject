@@ -4,7 +4,6 @@ import sys
 import cv2
 import numpy as np
 import streamlit as st
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from dbManagement import faces_dp
 
 st.title("Регистрация ученика")

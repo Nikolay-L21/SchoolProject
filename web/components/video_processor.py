@@ -1,6 +1,5 @@
 import threading
-from datetime import time
-
+import time
 import av
 import cv2
 from streamlit_webrtc import VideoProcessorBase
@@ -9,8 +8,12 @@ from recognizer import get_face_vector, compare_faces
 
 
 class OptimizedVideoProcessor(VideoProcessorBase):
-    def __init__(self, faces_database):
-        self.db = faces_database
+    def __init__(self, faces_database, group_name):
+        self.db = {
+            name: vector
+            for name, (student_class, vector) in faces_database.items()
+            if student_class == group_name
+        }
         self.last_detection_time = 0.0
         self.detection_interval = 0.15
         self.last_faces = []
@@ -20,15 +23,21 @@ class OptimizedVideoProcessor(VideoProcessorBase):
         self.last_hit_time = {}
         self.lock = threading.Lock()
         self.required_hits = 2
+
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         image = frame.to_ndarray(format="bgr24").copy()
         current_time = time.monotonic()
-        if  current_time - self.last_detection_time >= self.detection_interval:
+        if current_time - self.last_detection_time >= self.detection_interval:
             self.last_detection_time = current_time
             self.process_faces(image)
         self.draw(image)
-        return image.av.VideoFrame.from_ndarray(image, format="bgr24")
-
+        new_frame = av.VideoFrame.from_ndarray(
+            image,
+            format="bgr24"
+        )
+        new_frame.pts = frame.pts
+        new_frame.time_base = frame.time_base
+        return new_frame
     def process_faces(self, image):
         faces = detect_faces(image)
         detected_faces = []
@@ -71,7 +80,5 @@ class OptimizedVideoProcessor(VideoProcessorBase):
                 color = (0, 0, 255)
             cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
             cv2.putText(image, name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-        new_frame = av.VideoFrame.from_ndarray(image, format="bgr24")
-        new_frame.pts = image.pts
-        new_frame.time_base = image.time_base
-        return new_frame
+
+        return image
